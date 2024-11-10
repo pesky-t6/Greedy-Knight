@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 2
+  tags:
+  - Sword
+  - Axe
+  - Spear
+  - Shield
+  - HeavyTrail
+  - Player_Head
+  - Hammer
+  - WeaponSprite
+  - Enemy
+  - Bat
+  - Target
+  - GameManager
+  - Flyer Target
+  - Ground
+  - HeavyFlash
+  - FX
+  - EnemyBody
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - Player
+  - Water
+  - UI
+  - Ground
+  - Weapons
+  - Enemy
+  - Stuck Weapons
+  - Hitbox
+  - PlayerShield
+  - Projectile Weapons
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: EFX
+    uniqueID: 668014535
+    locked: 0
+  - name: Player
+    uniqueID: 4215826023
+    locked: 0
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: Ground
+    uniqueID: 119744135
+    locked: 0
+  - name: UI
+    uniqueID: 318573801
+    locked: 0
