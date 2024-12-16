@@ -2,15 +2,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameManager : MonoBehaviour
+public class Game_Manager : MonoBehaviour
 {
     private BatAI batAI;
     [SerializeField] private Transform playerPos;
+    [SerializeField] private CamController cam;
     public GameObject[] totalBats;
     public GameObject[] totalEnemies;
     public float currentAttackers = 0;
     private float maxAttackers = 3;
     public float batsWaiting = 0;
+
+    private bool canAttack = true;
 
     // Start is called before the first frame update
     void Start()
@@ -38,6 +41,19 @@ public class GameManager : MonoBehaviour
         totalEnemies = GameObject.FindGameObjectsWithTag("Enemy");
     }
 
+    public void ExecutionStart(Transform playerDummy)
+    {
+        cam.Focus(playerDummy);
+        canAttack = false;
+        ReShuffleAttackers();
+    }
+
+    public void ExecutionStop()
+    {
+        cam.Focus(playerPos);
+        canAttack = true;
+    }
+
     private IEnumerator BatReposition()
     {
         yield return new WaitForSeconds(30f);
@@ -51,14 +67,33 @@ public class GameManager : MonoBehaviour
 
     private void ReShuffleAttackers()
     {
-        currentAttackers = 0;
-        if (totalEnemies.Length < maxAttackers)
+        if (canAttack)
         {
-            foreach (GameObject obj in totalEnemies)
+            currentAttackers = 0;
+            if (totalEnemies.Length < maxAttackers)
             {
-                Enemy enemy = obj.GetComponent<Enemy>();
-                currentAttackers++;
-                enemy.watching = false;
+                foreach (GameObject obj in totalEnemies)
+                {
+                    Enemy enemy = obj.GetComponent<Enemy>();
+                    currentAttackers++;
+                    enemy.watching = false;
+                }
+            }
+            else
+            {
+                foreach (GameObject obj in totalEnemies)
+                {
+                    Enemy enemy = obj.GetComponent<Enemy>();
+                    if (currentAttackers < maxAttackers && enemy.watching)
+                    {
+                        currentAttackers++;
+                        enemy.watching = false;
+                    }
+                    else
+                    {
+                        enemy.watching = true;
+                    }
+                }
             }
         }
         else
@@ -66,16 +101,9 @@ public class GameManager : MonoBehaviour
             foreach (GameObject obj in totalEnemies)
             {
                 Enemy enemy = obj.GetComponent<Enemy>();
-                if (currentAttackers < maxAttackers && enemy.watching)
-                {
-                    currentAttackers++;
-                    enemy.watching = false;
-                }
-                else
-                {
-                    enemy.watching = true;
-                }
+                enemy.watching = true;
             }
+            currentAttackers = 0;
         }
     }
 }

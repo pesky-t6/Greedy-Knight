@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using Unity.PlasticSCM.Editor.WebApi;
@@ -156,7 +157,7 @@ public class Player_Attack : MonoBehaviour
         }
 
         //Throw item
-        if (Input.GetKeyDown(KeyCode.Q) && !attacking && inv.IsArmed())
+        if (Input.GetKeyDown(KeyCode.Q) && !attacking && (inv.IsArmed() || inv.shieldEquipped))
         {
             pm.anim.SetTrigger("Throw");
             inv.DropItem();
@@ -352,6 +353,7 @@ public class Player_Attack : MonoBehaviour
         {
             pl.canTakeDamage = false;
             //Turn down time
+            pl.CallCamZoom();
             Time.timeScale = slowedTime;
             Time.fixedDeltaTime = slowedFixedTime;
             StartCoroutine(ResumeTime());
@@ -604,14 +606,15 @@ public class Player_Attack : MonoBehaviour
             //Enemy
             else if (hitTag.Equals("Enemy"))
             {
+                string weaponName = Enum.GetName(typeof(Player_Inventory.WeaponState), inv.weaponState);
                 enemy = hit.transform.GetComponent<Enemy>();
                 if (!heavying)
                 {
-                    enemy.Hit(attack[state, inv.weaponState], Color.white, transform.position, knockback[inv.weaponState], state);
+                    enemy.Hit(attack[state, inv.weaponState], Color.white, transform.position, knockback[inv.weaponState], state, weaponName);
                 }
                 else
                 {
-                    enemy.Hit(attack[state, inv.weaponState], Color.red, transform.position, knockback[inv.weaponState] * 1.5f, state);
+                    enemy.Hit(attack[state, inv.weaponState] * 1.5f, Color.red, transform.position, knockback[inv.weaponState] * 1.5f, state, weaponName);
                 }
                 CallFreezeFrame();
             }

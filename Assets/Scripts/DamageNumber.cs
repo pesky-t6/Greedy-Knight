@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -15,7 +15,7 @@ public class DamageNumber : MonoBehaviour
     void Start()
     {
         text = GetComponent<TextMeshPro>();
-        text.text = value.ToString();
+        text.text = (Mathf.RoundToInt(value)).ToString();
         text.color = color;
         if (color == Color.red)
         {
@@ -42,18 +42,30 @@ public class DamageNumber : MonoBehaviour
         Destroy(gameObject);
     }
 
+    public float SmoothProgress(float progress)
+    {
+        //maps the progress between -π/2 to π/2
+        progress = Mathf.Lerp(0, 50, progress);
+        //returns a value between -1 and 1
+        progress = Mathf.Pow(9f / 8f, progress);
+        //scale the sine value between 0 and 1.
+        progress = (progress / 2f) + .5f;
+        return progress;
+    }
+
     //Makes the numbers fall (looks cool)
     private IEnumerator Fall()
     {
         yield return new WaitForSeconds(0.1f);
-
+        float progress = 0;
         float currentPos = 0f;
         float elapsedTime = 0f;
 
         while (elapsedTime < 1f)
         {
+            progress = elapsedTime;
             elapsedTime += Time.deltaTime;
-
+            progress = SmoothProgress(progress);
             currentPos = Mathf.Lerp(transform.position.y, transform.position.y - 0.001f, (elapsedTime));
             transform.position = new Vector3(transform.position.x ,currentPos, transform.position.z);
 

@@ -357,12 +357,12 @@ public class Player_Movement : MonoBehaviour
         Gizmos.DrawWireSphere(groundCheck.position, 0.125f);
     }
 
-    private void SetStatic()
+    public void SetStatic()
     {
         rb.bodyType = RigidbodyType2D.Static;
     }
 
-    private void SetDynamic()
+    public void SetDynamic()
     {
         rb.bodyType = RigidbodyType2D.Dynamic;
     }

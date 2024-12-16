@@ -114,7 +114,7 @@ public class Pickup : MonoBehaviour
 
                 Enemy enemy = collision.collider.GetComponent<Enemy>();
                 enemy.Knockback(transform.position, knockback[knockbackIndex]);
-                enemy.TakeDamage(throwDamage[knockbackIndex], UnityEngine.Color.white);
+                enemy.TakeDamage(throwDamage[knockbackIndex], UnityEngine.Color.white, null);
 
                 //Sticking to enemy if touching enemy layer
                 if (bx != null && bx.IsTouchingLayers(1 << 8))

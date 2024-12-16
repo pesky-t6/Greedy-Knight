@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 public class BatAI : MonoBehaviour
 {
     public Transform target;
-    private GameManager gameManager;
+    private Game_Manager gameManager;
 
     public Transform player;
     public Transform fly;
@@ -32,7 +32,7 @@ public class BatAI : MonoBehaviour
     {
         bat = GetComponent<Bat>();
 
-        gameManager = GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>();
+        gameManager = GameObject.FindGameObjectWithTag("GameManager").GetComponent<Game_Manager>();
         player = GameObject.FindGameObjectWithTag("Player").GetComponent<Transform>();
         fly = GameObject.FindGameObjectWithTag("Flyer Target").GetComponent<Transform>();
         fly.position = new Vector2(player.position.x + Random.Range(-10, 10), player.position.y + Random.Range(10, 20));

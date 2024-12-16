@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using Unity.PlasticSCM.Editor.WebApi;
 using Unity.VisualScripting;
@@ -8,7 +8,13 @@ using static UnityEditor.PlayerSettings;
 
 public class Player_Life : MonoBehaviour
 {
+    [SerializeField] private SpriteRenderer[] playerSprites;
     [SerializeField] private GameObject damageNum;
+    [SerializeField] private Camera cam;
+    private float camDefaultZoom = 2.5f;
+    private float camParryZoom = 1.75f;
+    private bool zooming = false;
+
     private float currentHealth = 100;
     private float maxHealth = 100;
     public float currentBlockAmount = 50;
@@ -34,6 +40,7 @@ public class Player_Life : MonoBehaviour
         pa = GetComponent<Player_Attack>();
         rb = GetComponent<Rigidbody2D>();
         TakeDamage(50f, Color.white);
+        
     }
 
     // Update is called once per frame
@@ -55,6 +62,51 @@ public class Player_Life : MonoBehaviour
         {
             fading = true;
             StartCoroutine(BarFade(blockBar));
+        }
+    }
+
+    public void CallCamZoom()
+    {
+        StartCoroutine(CamZoom(camDefaultZoom, camParryZoom));
+        zooming = true;
+    }
+
+    //Used for smoother lerping
+    public float SmoothProgress(float progress, bool reverse = false)
+    {
+        //maps the progress between -π/2 to π/2
+        progress = Mathf.Lerp(-Mathf.PI / 2, Mathf.PI / 2, progress);
+        if (reverse)
+        { progress = Mathf.Lerp(Mathf.PI / 2, -Mathf.PI / 2, progress); }
+        //returns a value between -1 and 1
+        progress = Mathf.Sin(progress);
+        //scale the sine value between 0 and 1.
+        progress = (progress / 2f) + .5f;
+        return progress;
+    }
+
+    //Smooth parry zoom
+    private IEnumerator CamZoom(float startValue, float endValue, float time = 0.1f)
+    {
+        float progress = 0;
+        float currentZoomAmount = camDefaultZoom;
+        float elapsedTime = 0f;
+
+        while (elapsedTime < time)
+        {
+            progress = elapsedTime / time;
+            elapsedTime += Time.deltaTime;
+            progress = SmoothProgress(progress);
+            currentZoomAmount = Mathf.Lerp(startValue, endValue, progress);
+            cam.orthographicSize = currentZoomAmount;
+            yield return null;
+        }
+
+        //Unzoom
+        if (zooming)
+        {
+            zooming = false;
+            StartCoroutine(CamZoom(camParryZoom, camDefaultZoom, 0.2f));
         }
     }
 
@@ -213,5 +265,21 @@ public class Player_Life : MonoBehaviour
     public void Heal(float amount)
     {
         currentHealth += amount;
+    }
+
+    public void Show()
+    {
+        foreach (SpriteRenderer sprite in playerSprites)
+        {
+            sprite.enabled = true;
+        }
+    }
+
+    public void Hide()
+    {
+        foreach (SpriteRenderer sprite in playerSprites)
+        {
+            sprite.enabled = false;
+        }
     }
 }

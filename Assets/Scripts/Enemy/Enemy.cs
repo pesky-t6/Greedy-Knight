@@ -7,9 +7,31 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using static UnityEngine.GraphicsBuffer;
+using static UnityEngine.Rendering.DebugUI;
+
+public static class ExtensionMethod
+{
+    //Used for executions
+    public static Object Instantiate(this Object thisObj, Object original, Vector3 position, Quaternion rotation, Transform parent,
+                                        string enemyName, string weaponType, float enemySizex, float enemySizey, float exeDirection,
+                                        GameObject enemy)
+    {
+        GameObject executer = Object.Instantiate(original, position, rotation, parent) as GameObject;
+        Execute ex = executer.GetComponent<Execute>();
+        ex.enemyName = enemyName;
+        ex.weaponType = weaponType;
+        ex.enemySizex = enemySizex;
+        ex.enemySizey = enemySizey;
+        ex.exeDirection = exeDirection;
+        ex.enemy = enemy;
+        return executer;
+    }
+}
 
 public class Enemy : MonoBehaviour
 {
+    [Header("Name:")]
+    [SerializeField] private string enemyName;
     [Header("Movement:")]
     [SerializeField] private float minRunSpeed;
     [SerializeField] private float maxRunSpeed;
@@ -40,6 +62,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private bool[] canAttack;
     [SerializeField] private bool[] isHeavy;
     [Header("References and Checks:")]
+    [SerializeField] private GameObject execution;
     [SerializeField] private LayerMask enemyLayer;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private Transform groundCheck;
@@ -72,6 +95,9 @@ public class Enemy : MonoBehaviour
     private bool attacking = false;
     private bool canTurn = true;
     private int currentAttackIndex;
+    private string currentWeaponName;
+    private bool isDead = false;
+    public bool beingExecuted = false;
 
     [SerializeField] private Color _flashColor = Color.red;
     [SerializeField] private float flashTime = 0.25f;
@@ -83,7 +109,7 @@ public class Enemy : MonoBehaviour
     private Coroutine DamageFlashCoroutine;
     private Player_Attack playerAttack;
     private DamageNumber damageNumHolder;
-    private GameManager gameManager;
+    private Game_Manager game_Manager;
 
     //Scaling the size of the character
     private float x;
@@ -122,11 +148,12 @@ public class Enemy : MonoBehaviour
         retreatDistance = Random.Range(retreatDistance - 0.05f, retreatDistance);
         watchingDistance = Random.Range(watchingDistance - 1f, watchingDistance + 2.5f);
 
+        //Calculate randomized size
         float rando = Random.Range(-0.1f, 0.1f);
         x = transform.localScale.x + rando;
         y = transform.localScale.y + rando;
         transform.localScale = new Vector3(x, y, transform.localScale.z);
-        health *= x;
+        health *= (x + y) / 2;
 
         for (int i = 0; i < canAttack.Length; i++)
         {
@@ -181,12 +208,14 @@ public class Enemy : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        //Calculates distance from the player for movement code
         target.position = new Vector2(player.position.x, transform.position.y);
         distance = player.position.x - rb.position.x;
 
-        if (health <= 0)
+        //Checks every frame whether the enemy is dead
+        if (health <= 0 && !isDead)
         {
-            Death();
+            DeathStart();
         }
 
         if (attacking) { canTurn = false; canMove = false; }
@@ -394,18 +423,18 @@ public class Enemy : MonoBehaviour
     }
 
     //Easier access to the method (dont need to use start coroutine)
-    public void Hit(float damage, Color color, Vector3 pos, float value, int state)
+    public void Hit(float damage, Color color, Vector3 pos, float value, int state, string weaponName)
     {
-        StartCoroutine(HitCoroutine(damage, color, pos, value, state));
+        StartCoroutine(HitCoroutine(damage, color, pos, value, state, weaponName));
     }
 
     //Method for freeze framing and taking damage and knockback
-    private IEnumerator HitCoroutine(float damage, Color color, Vector3 pos, float value, int state)
+    private IEnumerator HitCoroutine(float damage, Color color, Vector3 pos, float value, int state, string weaponName)
     {
         anim.speed = 0f;
         yield return new WaitForSeconds(freezeTime);
         anim.speed = 1f;
-        TakeDamage(damage, color);
+        TakeDamage(damage, color, weaponName);
         Knockback(pos, value, state);
     }
 
@@ -559,10 +588,11 @@ public class Enemy : MonoBehaviour
     }
 
     //Take damage method
-    public void TakeDamage(float damage, Color damageColor)
+    public void TakeDamage(float damage, Color damageColor, string weaponName)
     {
         if (canTakeDamage)
         {
+            currentWeaponName = weaponName;
             health -= damage;
             CallDamageFlash();
             StartCoroutine(Stun());
@@ -574,12 +604,24 @@ public class Enemy : MonoBehaviour
     }
 
     //Begins the death of the enemy
-    private void Death()
+    private void DeathStart()
     {
+        //Execution
+        if (execution != null)
+        {
+            gameObject.Instantiate(execution, groundCheck.position, transform.rotation, null,
+                enemyName, currentWeaponName, x, y, transform.localScale.x, this.gameObject);
+        }
+        else { DeathFinish(); }
+    }
+
+    public void DeathFinish()
+    {
+        CallDamageFlash();
         RemoveObjects();
         if (!watching)
         {
-            GameManager gameManager = GameObject.FindGameObjectWithTag("GameManager").GetComponent<GameManager>();
+            Game_Manager gameManager = GameObject.FindGameObjectWithTag("GameManager").GetComponent<Game_Manager>();
             gameManager.currentAttackers--;
         }
         rb.bodyType = RigidbodyType2D.Dynamic;
@@ -590,6 +632,7 @@ public class Enemy : MonoBehaviour
         {
             canAttack[i] = false;
         }
+        isDead = true;
     }
 
     private void RemoveObjects()

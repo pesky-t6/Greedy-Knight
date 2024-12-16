@@ -35,7 +35,7 @@ public class Player_Inventory : MonoBehaviour
     [SerializeField] private GameObject hammer;
 
     public int weaponState;
-    private enum WeaponState { sword, axe, spear, hammer };
+    public enum WeaponState { sword, axe, spear, hammer };
 
     private void Awake()
     {
