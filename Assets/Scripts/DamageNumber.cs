@@ -1,8 +1,6 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using static UnityEditor.ShaderGraph.Internal.Texture2DShaderProperty;
 
 public class DamageNumber : MonoBehaviour
 {
