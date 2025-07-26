@@ -1,0 +1,46 @@
+{
+    "name": "Player_Actions",
+    "maps": [
+        {
+            "name": "Map",
+            "id": "c7f94f6f-7917-473b-9177-b60269915c12",
+            "actions": [
+                {
+                    "name": "Attack",
+                    "type": "Button",
+                    "id": "77621178-3203-41be-ac0b-e0db720f4b55",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "Hold",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "390bb0cc-1bc8-456f-915f-bbfe65ea36c3",
+                    "path": "*/{PrimaryTrigger}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard",
+                    "action": "Attack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": [
+        {
+            "name": "Keyboard",
+            "bindingGroup": "Keyboard",
+            "devices": [
+                {
+                    "devicePath": "<Keyboard>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        }
+    ]
+}

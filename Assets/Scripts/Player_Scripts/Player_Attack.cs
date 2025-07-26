@@ -4,13 +4,13 @@ using System.Runtime.CompilerServices;
 using Unity.PlasticSCM.Editor.WebApi;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal.Internal;
 using UnityEngine.UI;
 
 public class Player_Attack : MonoBehaviour
 {
     private Rigidbody2D rb;
-    private TrailRenderer heavyTrail;
-    private Transform heavyPoint;
     public Transform attackPoint;
     [SerializeField] private LayerMask hitLayer;
 
@@ -18,9 +18,12 @@ public class Player_Attack : MonoBehaviour
     private Bat bat;
     private Enemy enemy;
 
+    //Script refs
     private Player_Inventory inv;
     private Player_Movement pm;
     private Player_Life pl;
+    private Heavy_Charges hc;
+    public InputActionReference attackInput;
 
     [SerializeField] private Player_Look lk;
     [SerializeField] private ParticleSystem ps;
@@ -36,21 +39,12 @@ public class Player_Attack : MonoBehaviour
     [SerializeField] private SpriteRenderer RHand;
 
     [SerializeField] private GameObject sparks;
-    [SerializeField] private GameObject heavyFlash;
-
-    [SerializeField] private Image[] heavyIcon;
-    private Material[] heavyIconMat;
-    private Material heavyGlow;
-
-    [ColorUsage(true, true)]
-    [SerializeField] private Color _flashColor = Color.white;
-    [SerializeField] private float _flashTime = 0.25f;
-    [SerializeField] private Material defMat;
-
     [SerializeField] private GameObject debris;
-    private GameObject debrisObj;
 
-    private Coroutine heavyFlasher;
+    [SerializeField] public TrailRenderer heavyTrail;
+    [SerializeField] public Transform heavyPoint;
+
+    private GameObject debrisObj;
 
     private bool falling = false;
     public bool dashAttack = false;
@@ -58,15 +52,11 @@ public class Player_Attack : MonoBehaviour
     public bool canChain;
     public bool canFinish;
     private bool groundEmmitting;
-
+    public bool swordThrown;
     private string hitTag;
 
     //Heavy management
-    private bool heavying = false;
-    public int heavyCharges = 3;
-    private int maxHeavyCharges = 3;
-    private float heavyChargeTimer = 5f;
-    public bool charging = false;
+    public bool heavying = false;
 
     //Block management
     private float blockTime = 0;
@@ -81,6 +71,7 @@ public class Player_Attack : MonoBehaviour
 
     private Color color;
 
+    //Attack ranges
     private float[] attackRange =
     {
         0.25f,  //opener
@@ -92,14 +83,15 @@ public class Player_Attack : MonoBehaviour
         1.3f      //heavyFall
     };
 
-    private int[,] attack = {
-    { 15, 15, 10, 14 }, //opener
-    { 15, 20, 14, 22 }, //chain
-    { 20, 8, 25, 10 },  //finisher
-    { 10, 15, 9, 16 },  //dash
-    { 17, 8, 20, 15 },  //jump
-    { 14, 20, 13, 25 },  //fall
-    { 14, 20, 13, 25 }   //heavyFall
+    //Attack numbers
+    private int[] attack = {
+        15, //opener
+        15, //chain
+        20,  //finisher
+        10,  //dash
+        17,  //jump
+        14,  //fall
+        14   //heavyFall
     };
 
     private int[] knockback = { 3, 1, 2, 4 };
@@ -107,58 +99,38 @@ public class Player_Attack : MonoBehaviour
     private enum AttackType { opener, chain, finisher, dash, jump, fall, heavyFall };
     private int state;
 
+    private void OnEnable()
+    {
+        attackInput.action.Enable();
+    }
+
+    private void OnDisable()
+    {
+        attackInput.action.Disable();
+    }
+
     private void Start()
     {
         inv = GetComponent<Player_Inventory>();
         pm = GetComponent<Player_Movement>();
         pl = GetComponent<Player_Life>();
         rb = GetComponent<Rigidbody2D>();
-
-        heavyIconMat = new Material[heavyIcon.Length];
-        for (int i = 0; i < heavyIcon.Length; i++)
-        {
-            heavyIconMat[i] = heavyIcon[i].material;
-        }
+        hc = GetComponent<Heavy_Charges>();
     }
-
-    //Easier to flash the heavy charge
-    private void CallHeavyFlash(int i)
-    {
-        heavyFlasher = StartCoroutine(HeavyChargeFlasher(i));
-    }
-
-    //Flash to show charge complete
-    private IEnumerator HeavyChargeFlasher(int i)
-    {
-        heavyIconMat[i].SetColor("_FlashColor", _flashColor);
-
-        float currentFlashAmount = 0f;
-        float elapsedTime = 0f;
-
-        while (elapsedTime < _flashTime)
-        {
-            elapsedTime += Time.deltaTime;
-
-            currentFlashAmount = Mathf.Lerp(1f, 0f, (elapsedTime / _flashTime));
-            this.heavyIconMat[i].SetFloat("_FlashAmount", currentFlashAmount);
-
-            yield return null;
-        }
-    }
-
 
     // Update is called once per frame
     void Update()
     {
+        attackInput.action.canceled += tap => Debug.Log("tapped");
+        attackInput.action.performed += held => Debug.Log("held");
+
         //adds to blocktime
-        if (attacking & inv.shieldEquipped)
-        {
-            blockTime += Time.deltaTime;
-        }
+        if (attacking & inv.shieldEquipped) blockTime += Time.deltaTime;
 
         //Throw item
         if (Input.GetKeyDown(KeyCode.Q) && !attacking && (inv.IsArmed() || inv.shieldEquipped))
         {
+            if (inv.IsArmed()) swordThrown = true;
             pm.anim.SetTrigger("Throw");
             inv.DropItem();
         }
@@ -168,7 +140,7 @@ public class Player_Attack : MonoBehaviour
         {
             blocking = true;
             pm.moveSpeed = 2;
-            weapons[3].transform.SetParent(Player.transform, false);
+            weapons[1].transform.SetParent(Player.transform, false);
             attacking = true;
             LHand.enabled = false;
             RHand.enabled = false;
@@ -181,7 +153,7 @@ public class Player_Attack : MonoBehaviour
         {
             blocking = false;
             StartCoroutine(BlockCD());
-            weapons[3].transform.SetParent(weapon.transform, false);
+            weapons[1].transform.SetParent(weapon.transform, false);
             attacking = false;
             LHand.enabled = true;
             RHand.enabled = true;
@@ -191,7 +163,7 @@ public class Player_Attack : MonoBehaviour
         }
 
         //only check for inputs if not attacking
-        else if (!attacking && !dashAttack && inv.IsArmed())
+        else if (!attacking && !dashAttack && !swordThrown)
         {
             //if rising
             if (rb.velocity.y > 0.1f)
@@ -205,11 +177,11 @@ public class Player_Attack : MonoBehaviour
                     pm.anim.SetTrigger("Light_Jump_Attack");
                 }
                 //Heavy jump attack 
-                else if (Input.GetButtonDown("Fire2") && heavyCharges > 0)
+                else if (Input.GetButtonDown("Fire2") && hc.heavyCharges > 0)
                 {
                     pm.anim.SetTrigger("Heavy_Jump_Attack");
                     GetInfo();
-                    HeavyUpdate();
+                    hc.HeavyUpdate();
 
                     state = (int)AttackType.jump;
                     pm.anim.speed = 0.6f;
@@ -230,12 +202,12 @@ public class Player_Attack : MonoBehaviour
                     pm.anim.SetTrigger("Light_Fall_Attack");
                 }
                 //Heavy fall attack
-                else if (Input.GetButtonDown("Fire2") && heavyCharges > 0)
+                else if (Input.GetButtonDown("Fire2") && hc.heavyCharges > 0)
                 {
                     falling = true;
                     pm.anim.SetTrigger("Heavy_Fall_Attack");
                     GetInfo();
-                    HeavyUpdate();
+                    hc.HeavyUpdate();
 
                     state = (int)AttackType.heavyFall;
                     pm.anim.speed = 0.6f;
@@ -272,10 +244,10 @@ public class Player_Attack : MonoBehaviour
                 }
 
                 //Heavy attacks
-                else if (Input.GetButtonDown("Fire2") && heavyCharges > 0)
+                else if (Input.GetButtonDown("Fire2") && hc.heavyCharges > 0)
                 {
                     GetInfo();
-                    HeavyUpdate();
+                    hc.HeavyUpdate();
 
                     pm.anim.speed = 0.6f;
                     heavyTrail.emitting = true;
@@ -310,10 +282,10 @@ public class Player_Attack : MonoBehaviour
                     pm.anim.Play("Light_Dash_Attack");
                 }
                 //Heavy dash attack
-                else if (Input.GetButtonDown("Fire2") && ((pm.dashDir > 0 && lk.isFacingRight) || (pm.dashDir < 0 && !lk.isFacingRight)) && pm.IsGrounded() && heavyCharges > 0)
+                else if (Input.GetButtonDown("Fire2") && ((pm.dashDir > 0 && lk.isFacingRight) || (pm.dashDir < 0 && !lk.isFacingRight)) && pm.IsGrounded() && hc.heavyCharges > 0)
                 {
                     GetInfo();
-                    HeavyUpdate();
+                    hc.HeavyUpdate();
 
                     state = (int)AttackType.dash;
                     dashAttack = true;
@@ -334,11 +306,6 @@ public class Player_Attack : MonoBehaviour
             {
                 ps.transform.localScale = new Vector3(1, 1, 1);
             }
-        }
-
-        if (heavyCharges < maxHeavyCharges)
-        {
-            ShowHeavyIcon();
         }
     }
 
@@ -379,26 +346,6 @@ public class Player_Attack : MonoBehaviour
         {
             color = other.GetComponent<SpriteRenderer>().color;
         }
-    }
-
-    //Updates heavy charge
-    private void ShowHeavyIcon()
-    {
-        heavyIcon[heavyCharges].fillAmount += 1 / (heavyChargeTimer) * Time.deltaTime;
-    }
-
-    //Uses a heavy charge
-    private void HeavyUpdate()
-    {
-        heavying = true;
-        heavyCharges--;
-        heavyIcon[heavyCharges].fillAmount = 0;
-        if (charging)
-        {
-            heavyIcon[heavyCharges].fillAmount = heavyIcon[heavyCharges + 1].fillAmount;
-            heavyIcon[heavyCharges + 1].fillAmount = 0;
-        }
-        ChargeHeavy();
     }
 
     //Finishes dash attack
@@ -542,29 +489,6 @@ public class Player_Attack : MonoBehaviour
         }
     }
 
-    private void ChargeHeavy()
-    {
-        if (heavyCharges < maxHeavyCharges && !charging)
-        {
-            StartCoroutine(StartCharging());
-        }
-    }
-
-    //Starts charging heavy
-    private IEnumerator StartCharging()
-    {
-        charging = true;
-        yield return new WaitForSeconds(heavyChargeTimer);
-        heavyIcon[heavyCharges].fillAmount = 1;
-        CallHeavyFlash(heavyCharges);
-        heavyCharges++;
-        charging = false;
-        if (heavyCharges < maxHeavyCharges)
-        {
-            StartCoroutine(StartCharging());
-        }
-    }
-
     //Attack function
     private void Attack()
     {
@@ -594,12 +518,12 @@ public class Player_Attack : MonoBehaviour
                 if (!heavying)
                 {
                     bat.Knockback(lk.dir, knockback[inv.weaponState], state);
-                    bat.TakeDamage(attack[state, inv.weaponState]);
+                    bat.TakeDamage(attack[state]);
                 }
                 else
                 {
                     bat.Knockback(lk.dir, knockback[inv.weaponState] * 1.5f, state);
-                    bat.TakeDamage(attack[state, inv.weaponState] * 2);
+                    bat.TakeDamage(attack[state] * 2);
                 }
             }
 
@@ -610,11 +534,11 @@ public class Player_Attack : MonoBehaviour
                 enemy = hit.transform.GetComponent<Enemy>();
                 if (!heavying)
                 {
-                    enemy.Hit(attack[state, inv.weaponState], Color.white, transform.position, knockback[inv.weaponState], state, weaponName);
+                    enemy.Hit(attack[state], Color.white, transform.position, knockback[inv.weaponState], state, weaponName);
                 }
                 else
                 {
-                    enemy.Hit(attack[state, inv.weaponState] * 1.5f, Color.red, transform.position, knockback[inv.weaponState] * 1.5f, state, weaponName);
+                    enemy.Hit(attack[state] * 1.5f, Color.red, transform.position, knockback[inv.weaponState] * 1.5f, state, weaponName);
                 }
                 CallFreezeFrame();
             }
@@ -632,14 +556,6 @@ public class Player_Attack : MonoBehaviour
         pm.anim.speed = 0f;
         yield return new WaitForSeconds(0.05f);
         pm.anim.speed = 1f;
-    }
-    //Red flash to indicate heavy attack
-    private void HeavyFlash()
-    {
-        if (heavying)
-        {
-            Instantiate(heavyFlash, heavyPoint.position, Quaternion.identity, heavyTrail.transform);
-        }
     }
 
     private IEnumerator BlockCD()

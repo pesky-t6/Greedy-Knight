@@ -12,14 +12,12 @@ public class Pickup : MonoBehaviour
     private Player_Inventory inv;
     private Player_Look lk;
     public GameObject itemButton;
-    private bool canPickup = false;
     //Whether it is a thrown object or not
     public bool thrown = false;
     private bool throwable = false;
-    private bool closeEnough = false;
 
-    private int[] throwDamage = { 10, 23, 15, 10, 25 };
-    private int[] knockback = { 3, 1, 2, 0, 4 };
+    private int[] throwDamage = { 10, 10 }; 
+    private int[] knockback = { 3, 0 };
 
     private int knockbackIndex;
 
@@ -40,7 +38,6 @@ public class Pickup : MonoBehaviour
         tag = gameObject.tag;
         rb = GetComponent<Rigidbody2D>();
         inv = GameObject.FindGameObjectWithTag("Player").GetComponent<Player_Inventory>();
-        StartCoroutine(CD());
         lk = GameObject.FindGameObjectWithTag("Player_Head").GetComponent<Player_Look>();
         if (!lk.isFacingRight)
         {
@@ -52,21 +49,9 @@ public class Pickup : MonoBehaviour
         {
             knockbackIndex = 0;
         }
-        else if (gameObject.CompareTag("Axe"))
-        {
-            knockbackIndex = 1;
-        }
-        else if (gameObject.CompareTag("Spear"))
-        {
-            knockbackIndex = 2;
-        }
         else if (gameObject.CompareTag("Shield"))
         {
-            knockbackIndex = 3;
-        }
-        else if (gameObject.CompareTag("Hammer"))
-        {
-            knockbackIndex = 4;
+            knockbackIndex = 1;
         }
 
         if (!thrown)
@@ -77,11 +62,6 @@ public class Pickup : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        //If its the player 
-        if (collision.CompareTag("Player"))
-        {
-            closeEnough = true;
-        }
         if (collision.CompareTag("Ground"))
         {
             color = collision.GetComponent<SpriteRenderer>().color;
@@ -156,15 +136,6 @@ public class Pickup : MonoBehaviour
         gameObject.layer = 7;
     }
 
-    private void OnTriggerExit2D(Collider2D collision)
-    {
-        //If its the player 
-        if (collision.CompareTag("Player"))
-        {
-            closeEnough = false;
-        }
-    }
-
     private void Update()
     {
         if (rb.velocity.magnitude < 1f)
@@ -216,29 +187,6 @@ public class Pickup : MonoBehaviour
                 }
             }
         }
-
-        if (Input.GetKeyDown(KeyCode.E) && closeEnough && canPickup)
-        {
-            //Check each slot
-            for (int i = 0; i < inv.slots.Length; i++)
-            {
-                //If slot isn't full, add item
-                if (!inv.isFull[i])
-                {
-                    inv.isFull[i] = true;
-                    Instantiate(itemButton, inv.slots[i].transform, false);
-                    Destroy(gameObject);
-                    inv.CheckWeapons();
-                    break;
-                }
-            }
-        }
-    }
-
-    private IEnumerator CD()
-    {
-        yield return new WaitForSeconds(0.75f);
-        canPickup = true;
     }
 
     private IEnumerator DamageCD()
