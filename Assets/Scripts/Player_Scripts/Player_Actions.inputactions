@@ -11,18 +11,18 @@
                     "id": "77621178-3203-41be-ac0b-e0db720f4b55",
                     "expectedControlType": "Button",
                     "processors": "",
-                    "interactions": "Hold",
+                    "interactions": "",
                     "initialStateCheck": false
                 }
             ],
             "bindings": [
                 {
                     "name": "",
-                    "id": "390bb0cc-1bc8-456f-915f-bbfe65ea36c3",
-                    "path": "*/{PrimaryTrigger}",
+                    "id": "da958859-fe55-4a85-9298-e97e51d6f951",
+                    "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
-                    "groups": "Keyboard",
+                    "groups": "",
                     "action": "Attack",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -37,6 +37,11 @@
             "devices": [
                 {
                     "devicePath": "<Keyboard>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<Mouse>",
                     "isOptional": false,
                     "isOR": false
                 }

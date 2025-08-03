@@ -71,6 +71,11 @@ public class Player_Attack : MonoBehaviour
 
     private Color color;
 
+    private String lightButton = "Fire1";
+    private String heavyButton = "Fire3";
+    private String shieldButton = "Fire2";
+
+
     //Attack ranges
     private float[] attackRange =
     {
@@ -99,16 +104,6 @@ public class Player_Attack : MonoBehaviour
     private enum AttackType { opener, chain, finisher, dash, jump, fall, heavyFall };
     private int state;
 
-    private void OnEnable()
-    {
-        attackInput.action.Enable();
-    }
-
-    private void OnDisable()
-    {
-        attackInput.action.Disable();
-    }
-
     private void Start()
     {
         inv = GetComponent<Player_Inventory>();
@@ -118,12 +113,14 @@ public class Player_Attack : MonoBehaviour
         hc = GetComponent<Heavy_Charges>();
     }
 
+    void OnAttack(InputValue value)
+    {
+        if (value.isPressed) Debug.Log("Light");
+    }
+
     // Update is called once per frame
     void Update()
     {
-        attackInput.action.canceled += tap => Debug.Log("tapped");
-        attackInput.action.performed += held => Debug.Log("held");
-
         //adds to blocktime
         if (attacking & inv.shieldEquipped) blockTime += Time.deltaTime;
 
@@ -136,7 +133,7 @@ public class Player_Attack : MonoBehaviour
         }
 
         //Shield block
-        if (Input.GetButtonDown("Fire1") && inv.shieldEquipped && !dashAttack && canBlock && pl.currentBlockAmount > 0)
+        if (Input.GetButtonDown(shieldButton) && !dashAttack && canBlock && pl.currentBlockAmount > 0)
         {
             blocking = true;
             pm.moveSpeed = 2;
@@ -149,7 +146,7 @@ public class Player_Attack : MonoBehaviour
         }
 
         //Shield unblock
-        else if ((Input.GetButtonUp("Fire1") && inv.shieldEquipped && !dashAttack && blocking) || pl.currentBlockAmount <= 0)
+        else if ((Input.GetButtonUp(shieldButton) && !dashAttack && blocking) || pl.currentBlockAmount <= 0)
         {
             blocking = false;
             StartCoroutine(BlockCD());
@@ -169,7 +166,7 @@ public class Player_Attack : MonoBehaviour
             if (rb.velocity.y > 0.1f)
             {
                 //Light jump attack 
-                if (Input.GetButtonDown("Fire1"))
+                if (Input.GetButtonDown(lightButton))
                 {
                     GetInfo();
                     state = (int)AttackType.jump;
@@ -177,7 +174,7 @@ public class Player_Attack : MonoBehaviour
                     pm.anim.SetTrigger("Light_Jump_Attack");
                 }
                 //Heavy jump attack 
-                else if (Input.GetButtonDown("Fire2") && hc.heavyCharges > 0)
+                else if (Input.GetButtonDown(heavyButton) && hc.heavyCharges > 0)
                 {
                     pm.anim.SetTrigger("Heavy_Jump_Attack");
                     GetInfo();
@@ -194,7 +191,7 @@ public class Player_Attack : MonoBehaviour
             else if (rb.velocity.y < -0.1f)
             {
                 //Light fall attack
-                if (Input.GetButtonDown("Fire1"))
+                if (Input.GetButtonDown(lightButton))
                 {
                     GetInfo();
                     state = (int)AttackType.fall;
@@ -202,7 +199,7 @@ public class Player_Attack : MonoBehaviour
                     pm.anim.SetTrigger("Light_Fall_Attack");
                 }
                 //Heavy fall attack
-                else if (Input.GetButtonDown("Fire2") && hc.heavyCharges > 0)
+                else if (Input.GetButtonDown(heavyButton) && hc.heavyCharges > 0)
                 {
                     falling = true;
                     pm.anim.SetTrigger("Heavy_Fall_Attack");
@@ -222,7 +219,7 @@ public class Player_Attack : MonoBehaviour
             else if (!pm.isDashing && pm.IsGrounded())
             {
                 //Light attacks
-                if (Input.GetButtonDown("Fire1"))
+                if (Input.GetButtonDown(lightButton))
                 {
                     GetInfo();
                     if (canFinish)
@@ -244,7 +241,7 @@ public class Player_Attack : MonoBehaviour
                 }
 
                 //Heavy attacks
-                else if (Input.GetButtonDown("Fire2") && hc.heavyCharges > 0)
+                else if (Input.GetButtonDown(heavyButton) && hc.heavyCharges > 0)
                 {
                     GetInfo();
                     hc.HeavyUpdate();
@@ -274,7 +271,7 @@ public class Player_Attack : MonoBehaviour
             else if (pm.isDashing)
             {
                 //Light dash attack
-                if (Input.GetButtonDown("Fire1") && ((pm.dashDir > 0 && lk.isFacingRight) || (pm.dashDir < 0 && !lk.isFacingRight)))
+                if (Input.GetButtonDown(lightButton) && ((pm.dashDir > 0 && lk.isFacingRight) || (pm.dashDir < 0 && !lk.isFacingRight)))
                 {
                     state = (int)AttackType.dash;
                     GetInfo();
@@ -282,7 +279,7 @@ public class Player_Attack : MonoBehaviour
                     pm.anim.Play("Light_Dash_Attack");
                 }
                 //Heavy dash attack
-                else if (Input.GetButtonDown("Fire2") && ((pm.dashDir > 0 && lk.isFacingRight) || (pm.dashDir < 0 && !lk.isFacingRight)) && pm.IsGrounded() && hc.heavyCharges > 0)
+                else if (Input.GetButtonDown(shieldButton) && ((pm.dashDir > 0 && lk.isFacingRight) || (pm.dashDir < 0 && !lk.isFacingRight)) && pm.IsGrounded() && hc.heavyCharges > 0)
                 {
                     GetInfo();
                     hc.HeavyUpdate();
@@ -498,7 +495,7 @@ public class Player_Attack : MonoBehaviour
             hitTag = hit.tag;
 
             //Pickup
-            if (hitTag.Equals("Sword") || hitTag.Equals("Axe") || hitTag.Equals("Spear") || hitTag.Equals("Shield") || hitTag.Equals("Hammer"))
+            if (hitTag.Equals("Sword") || hitTag.Equals("Shield"))
             {
                 pick = hit.GetComponent<Pickup>();
                 if (!heavying)
