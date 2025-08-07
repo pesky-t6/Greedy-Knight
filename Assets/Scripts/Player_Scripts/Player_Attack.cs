@@ -26,7 +26,6 @@ public class Player_Attack : MonoBehaviour
     public InputActionReference attackInput;
 
     [SerializeField] private Player_Look lk;
-    [SerializeField] private ParticleSystem ps;
     [SerializeField] private GameObject weapon;
     [SerializeField] private GameObject[] weapons;
 
@@ -51,7 +50,6 @@ public class Player_Attack : MonoBehaviour
     public bool attacking = false;
     public bool canChain;
     public bool canFinish;
-    private bool groundEmmitting;
     public bool swordThrown;
     private string hitTag;
 
@@ -71,10 +69,13 @@ public class Player_Attack : MonoBehaviour
 
     private Color color;
 
-    private String lightButton = "Fire1";
-    private String heavyButton = "Fire3";
-    private String shieldButton = "Fire2";
+    private string lightButton = "Fire1";
+    private string heavyButton = null;
+    private string shieldButton = "Fire2";
 
+    private float timeHolding = 0f;
+    private bool isHoldingAttack = false;
+    private float heavyThreshold = 0.2f;
 
     //Attack ranges
     private float[] attackRange =
@@ -118,9 +119,30 @@ public class Player_Attack : MonoBehaviour
         if (value.isPressed) Debug.Log("Light");
     }
 
+    void attackHandler()
+    {
+        if (Input.GetButtonDown(lightButton))
+        {
+            isHoldingAttack = true;
+        }
+        else if (Input.GetButtonUp(lightButton) && isHoldingAttack)
+        {
+            isHoldingAttack = false;
+        }
+
+        if (isHoldingAttack)
+        {
+            timeHolding += Time.deltaTime;
+        }
+        else timeHolding = 0;
+        Debug.Log(isHoldingAttack + ": " + timeHolding);
+    }
+
     // Update is called once per frame
     void Update()
     {
+        attackHandler();
+
         //adds to blocktime
         if (attacking & inv.shieldEquipped) blockTime += Time.deltaTime;
 
@@ -279,7 +301,7 @@ public class Player_Attack : MonoBehaviour
                     pm.anim.Play("Light_Dash_Attack");
                 }
                 //Heavy dash attack
-                else if (Input.GetButtonDown(shieldButton) && ((pm.dashDir > 0 && lk.isFacingRight) || (pm.dashDir < 0 && !lk.isFacingRight)) && pm.IsGrounded() && hc.heavyCharges > 0)
+                else if (Input.GetButtonDown(heavyButton) && ((pm.dashDir > 0 && lk.isFacingRight) || (pm.dashDir < 0 && !lk.isFacingRight)) && pm.IsGrounded() && hc.heavyCharges > 0)
                 {
                     GetInfo();
                     hc.HeavyUpdate();
@@ -290,18 +312,6 @@ public class Player_Attack : MonoBehaviour
                     pm.anim.Play("Heavy_Dash_Attack");
 
                 }
-            }
-        }
-
-        if (groundEmmitting)
-        {
-            if (!lk.isFacingRight)
-            {
-                ps.transform.localScale = new Vector3(-1, 1, 1);
-            }
-            else if (lk.isFacingRight)
-            {
-                ps.transform.localScale = new Vector3(1, 1, 1);
             }
         }
     }
@@ -405,20 +415,6 @@ public class Player_Attack : MonoBehaviour
         pm.canMove = true;
     }
 
-    private void DustOn()
-    {
-        ParticleSystem.MainModule ma = ps.main;
-        ma.startColor = color;
-        ps.Play();
-        groundEmmitting = true;
-    }
-
-    private void DustOff()
-    {
-        ps.Stop();
-        groundEmmitting = false;
-    }
-
     private void GetInfo()
     {
         //For every weapon
@@ -445,7 +441,7 @@ public class Player_Attack : MonoBehaviour
                     }
                     if (child2.CompareTag("FX"))
                     {
-                        ps = child2.GetComponent<ParticleSystem>();
+
                     }
                 }
                 break;

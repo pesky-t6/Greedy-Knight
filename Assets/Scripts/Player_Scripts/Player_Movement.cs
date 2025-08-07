@@ -18,9 +18,9 @@ public class Player_Movement : MonoBehaviour
 
     //floats
     private float dirX = 0f;
-    private float dashSpeed = 10f;
+    private float dashSpeed = 15f;
     private float dashCD = 1.5f;
-    private float dashTime = 0.25f;
+    private float dashTime = 0.15f;
     private float targetSpeed;
     private float speedDif;
     private float accelRate;
