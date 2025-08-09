@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Unity.PlasticSCM.Editor.WebApi;
 using Unity.VisualScripting;
@@ -77,6 +78,13 @@ public class Player_Attack : MonoBehaviour
     private bool isHoldingAttack = false;
     private float heavyThreshold = 0.2f;
 
+
+
+    public List<AttackSO> comboList;
+    float lastTimeClicked;
+    float lastTimeComboEnd;
+    int comboIndex;
+
     //Attack ranges
     private float[] attackRange =
     {
@@ -114,11 +122,6 @@ public class Player_Attack : MonoBehaviour
         hc = GetComponent<Heavy_Charges>();
     }
 
-    void OnAttack(InputValue value)
-    {
-        if (value.isPressed) Debug.Log("Light");
-    }
-
     void attackHandler()
     {
         if (Input.GetButtonDown(lightButton))
@@ -135,13 +138,52 @@ public class Player_Attack : MonoBehaviour
             timeHolding += Time.deltaTime;
         }
         else timeHolding = 0;
-        Debug.Log(isHoldingAttack + ": " + timeHolding);
+        //Debug.Log(isHoldingAttack + ": " + timeHolding);
+    }
+
+    void ComboAttack()
+    {
+        if (Time.time - lastTimeComboEnd > 0.2f && comboIndex < comboList.Count)
+        {
+            CancelInvoke("EndCombo");
+
+            if (Time.time - lastTimeClicked >= 0.6f)
+            {
+                pm.anim.runtimeAnimatorController = comboList[comboIndex].animatorOV;
+                pm.anim.Play("Charging Attack", 0, 0);
+
+                comboIndex++;
+                lastTimeClicked = Time.time;
+
+                if (comboIndex > comboList.Count) { comboIndex = 0; }
+            }
+        }
+    }
+
+    void ExitAttack()
+    {
+        if (pm.anim.GetCurrentAnimatorStateInfo(0).normalizedTime > 0.5f && pm.anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
+        {
+            Invoke("EndCombo", 1);
+        }
+    }
+
+    void EndCombo()
+    {
+        comboIndex = 0;
+        lastTimeComboEnd = Time.time;
     }
 
     // Update is called once per frame
     void Update()
     {
         attackHandler();
+
+        if (Input.GetButtonDown("Fire1"))
+        {
+            ComboAttack();
+        }
+        ExitAttack();
 
         //adds to blocktime
         if (attacking & inv.shieldEquipped) blockTime += Time.deltaTime;
