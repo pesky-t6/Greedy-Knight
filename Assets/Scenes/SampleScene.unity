@@ -10436,6 +10436,10 @@ MonoBehaviour:
   swordThrown: 0
   heavying: 0
   blocking: 0
+  comboList:
+  - {fileID: 11400000, guid: 2f87557bd2d973646b664ba6b59fddb3, type: 2}
+  - {fileID: 11400000, guid: b07b8e63cbbf254449152dcfce6796a9, type: 2}
+  - {fileID: 11400000, guid: 9a69227023c79c842b4aa90344df73f8, type: 2}
 --- !u!114 &408840284
 MonoBehaviour:
   m_ObjectHideFlags: 0

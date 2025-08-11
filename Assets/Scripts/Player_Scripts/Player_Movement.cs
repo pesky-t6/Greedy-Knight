@@ -18,7 +18,7 @@ public class Player_Movement : MonoBehaviour
 
     //floats
     private float dirX = 0f;
-    private float dashSpeed = 15f;
+    private float dashSpeed = 30f;
     private float dashCD = 1.5f;
     private float dashTime = 0.15f;
     private float targetSpeed;
@@ -46,7 +46,7 @@ public class Player_Movement : MonoBehaviour
     //serialized variables
     [SerializeField] private Player_Look look;
     [SerializeField] private Player_Attack attack;
-    [SerializeField] public float moveSpeed = 4f;
+    [SerializeField] public float moveSpeed = 6f;
     [SerializeField] private float jumpForce = 7f;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private Transform wallCheck;
