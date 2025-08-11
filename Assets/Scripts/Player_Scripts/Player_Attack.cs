@@ -25,6 +25,7 @@ public class Player_Attack : MonoBehaviour
     private Player_Life pl;
     private Heavy_Charges hc;
     public InputActionReference attackInput;
+    private Animator anim;
 
     [SerializeField] private Player_Look lk;
     [SerializeField] private GameObject weapon;
@@ -76,9 +77,7 @@ public class Player_Attack : MonoBehaviour
 
     private float timeHolding = 0f;
     private bool isHoldingAttack = false;
-    private float heavyThreshold = 0.2f;
-
-
+    private float heavyThreshold = 1f;
 
     public List<AttackSO> comboList;
     float lastTimeClicked;
@@ -120,25 +119,36 @@ public class Player_Attack : MonoBehaviour
         pl = GetComponent<Player_Life>();
         rb = GetComponent<Rigidbody2D>();
         hc = GetComponent<Heavy_Charges>();
+        anim = pm.anim;
     }
 
-    void attackHandler()
+    void AttackHandler()
     {
-        if (Input.GetButtonDown(lightButton))
+        if (Input.GetButtonDown(lightButton) && !attacking)
         {
             isHoldingAttack = true;
+            anim.ResetTrigger("LightAttack");
+            anim.ResetTrigger("HeavyAttack");
+            ComboAttack();
         }
         else if (Input.GetButtonUp(lightButton) && isHoldingAttack)
         {
             isHoldingAttack = false;
+            if (timeHolding <= heavyThreshold) anim.SetTrigger("LightAttack");
+            else if (timeHolding >= heavyThreshold) anim.SetTrigger("HeavyAttack");
         }
 
         if (isHoldingAttack)
         {
             timeHolding += Time.deltaTime;
+            if (timeHolding >= heavyThreshold)
+            {
+                isHoldingAttack = false;
+                anim.SetTrigger("HeavyAttack");
+            }
         }
         else timeHolding = 0;
-        //Debug.Log(isHoldingAttack + ": " + timeHolding);
+        Debug.Log(isHoldingAttack);
     }
 
     void ComboAttack()
@@ -147,14 +157,13 @@ public class Player_Attack : MonoBehaviour
         {
             CancelInvoke("EndCombo");
 
-            if (Time.time - lastTimeClicked >= 0.6f)
+            if (Time.time - lastTimeClicked >= 0.4f)
             {
-                pm.anim.runtimeAnimatorController = comboList[comboIndex].animatorOV;
-                pm.anim.Play("Charging Attack", 0, 0);
+                anim.runtimeAnimatorController = comboList[comboIndex].animatorOV;
+                anim.Play("Charging Attack", 0, 0);
 
                 comboIndex++;
                 lastTimeClicked = Time.time;
-
                 if (comboIndex > comboList.Count) { comboIndex = 0; }
             }
         }
@@ -162,9 +171,10 @@ public class Player_Attack : MonoBehaviour
 
     void ExitAttack()
     {
-        if (pm.anim.GetCurrentAnimatorStateInfo(0).normalizedTime > 0.5f && pm.anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
+        if (anim.GetCurrentAnimatorStateInfo(0).normalizedTime > 0.9f && anim.GetCurrentAnimatorStateInfo(0).IsTag("AttackEnd"))
         {
-            Invoke("EndCombo", 1);
+            Invoke("EndCombo", 0);
+            Debug.Log("Combo ended");
         }
     }
 
@@ -177,12 +187,8 @@ public class Player_Attack : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        attackHandler();
+        AttackHandler();
 
-        if (Input.GetButtonDown("Fire1"))
-        {
-            ComboAttack();
-        }
         ExitAttack();
 
         //adds to blocktime
@@ -192,7 +198,7 @@ public class Player_Attack : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Q) && !attacking && (inv.IsArmed() || inv.shieldEquipped))
         {
             if (inv.IsArmed()) swordThrown = true;
-            pm.anim.SetTrigger("Throw");
+            anim.SetTrigger("Throw");
             inv.DropItem();
         }
 
@@ -235,17 +241,17 @@ public class Player_Attack : MonoBehaviour
                     GetInfo();
                     state = (int)AttackType.jump;
                     attacking = true;
-                    pm.anim.SetTrigger("Light_Jump_Attack");
+                    anim.SetTrigger("Light_Jump_Attack");
                 }
                 //Heavy jump attack 
                 else if (Input.GetButtonDown(heavyButton) && hc.heavyCharges > 0)
                 {
-                    pm.anim.SetTrigger("Heavy_Jump_Attack");
+                    anim.SetTrigger("Heavy_Jump_Attack");
                     GetInfo();
                     hc.HeavyUpdate();
 
                     state = (int)AttackType.jump;
-                    pm.anim.speed = 0.6f;
+                    anim.speed = 0.6f;
                     attacking = true;
                     heavyTrail.emitting = true;
                 }
@@ -260,74 +266,22 @@ public class Player_Attack : MonoBehaviour
                     GetInfo();
                     state = (int)AttackType.fall;
                     attacking = true;
-                    pm.anim.SetTrigger("Light_Fall_Attack");
+                    anim.SetTrigger("Light_Fall_Attack");
                 }
                 //Heavy fall attack
                 else if (Input.GetButtonDown(heavyButton) && hc.heavyCharges > 0)
                 {
                     falling = true;
-                    pm.anim.SetTrigger("Heavy_Fall_Attack");
+                    anim.SetTrigger("Heavy_Fall_Attack");
                     GetInfo();
                     hc.HeavyUpdate();
 
                     state = (int)AttackType.heavyFall;
-                    pm.anim.speed = 0.6f;
+                    anim.speed = 0.6f;
                     attacking = true;
                     heavyTrail.emitting = true;
                     
                     lk.canTurn = false;
-                }
-            }
-
-            //Basic attacks check
-            else if (!pm.isDashing && pm.IsGrounded())
-            {
-                //Light attacks
-                if (Input.GetButtonDown(lightButton))
-                {
-                    GetInfo();
-                    if (canFinish)
-                    {
-                        state = (int)AttackType.finisher;
-                        pm.anim.SetTrigger("Finisher");
-                    }
-                    else if (canChain)
-                    {
-                        state = (int)AttackType.chain;
-                        pm.anim.SetTrigger("Chain");
-                    }
-                    else if (!canChain)
-                    {
-                        state = (int)AttackType.opener;
-                        pm.anim.SetTrigger("Opener");
-                    }
-
-                }
-
-                //Heavy attacks
-                else if (Input.GetButtonDown(heavyButton) && hc.heavyCharges > 0)
-                {
-                    GetInfo();
-                    hc.HeavyUpdate();
-
-                    pm.anim.speed = 0.6f;
-                    heavyTrail.emitting = true;
-                    if (canFinish)
-                    {
-                        state = (int)AttackType.finisher;
-                        pm.anim.SetTrigger("Finisher");
-                    }
-                    else if (canChain)
-                    {
-                        state = (int)AttackType.chain;
-                        pm.anim.SetTrigger("Chain");
-                    }
-                    else if (!canChain)
-                    {
-                        state = (int)AttackType.opener;
-                        pm.anim.SetTrigger("Opener");
-                    }
-
                 }
             }
 
@@ -340,7 +294,7 @@ public class Player_Attack : MonoBehaviour
                     state = (int)AttackType.dash;
                     GetInfo();
                     dashAttack = true;
-                    pm.anim.Play("Light_Dash_Attack");
+                    anim.Play("Light_Dash_Attack");
                 }
                 //Heavy dash attack
                 else if (Input.GetButtonDown(heavyButton) && ((pm.dashDir > 0 && lk.isFacingRight) || (pm.dashDir < 0 && !lk.isFacingRight)) && pm.IsGrounded() && hc.heavyCharges > 0)
@@ -351,7 +305,7 @@ public class Player_Attack : MonoBehaviour
                     state = (int)AttackType.dash;
                     dashAttack = true;
                     heavyTrail.emitting = true;
-                    pm.anim.Play("Heavy_Dash_Attack");
+                    anim.Play("Heavy_Dash_Attack");
 
                 }
             }
@@ -381,7 +335,7 @@ public class Player_Attack : MonoBehaviour
         //Ground smash when touching ground and heavy falling
         if (pm.IsGrounded() && falling)
         {
-            pm.anim.SetTrigger("Smash");
+            anim.SetTrigger("Smash");
             heavying = false;
             lk.canTurn = true;
             falling = false;
@@ -420,7 +374,7 @@ public class Player_Attack : MonoBehaviour
 
     public void AttackDone()
     {
-        pm.anim.speed = 1f;
+        anim.speed = 1f;
         if (heavyTrail != null && heavyTrail.emitting)
         {
             heavyTrail.emitting = false;
@@ -516,11 +470,11 @@ public class Player_Attack : MonoBehaviour
         pm.moveSpeed = 1;
         if (heavying)
         {
-            pm.anim.speed = 0.6f;
+            anim.speed = 0.6f;
         }
         else
         {
-            pm.anim.speed = 1;
+            anim.speed = 1;
         }
     }
 
@@ -588,9 +542,9 @@ public class Player_Attack : MonoBehaviour
     //Freeze the character when hitting an enemy
     private IEnumerator FreezeFrame()
     {
-        pm.anim.speed = 0f;
+        anim.speed = 0f;
         yield return new WaitForSeconds(0.05f);
-        pm.anim.speed = 1f;
+        anim.speed = 1f;
     }
 
     private IEnumerator BlockCD()
