@@ -122,6 +122,7 @@ public class Player_Attack : MonoBehaviour
         anim = pm.anim;
     }
 
+    //Handles input for attacking
     void AttackHandler()
     {
         if (Input.GetButtonDown(lightButton) && !attacking)
